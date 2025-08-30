@@ -1,0 +1,48 @@
+version: '3.9'
+
+services:
+  postgres:
+    image: postgres:15
+    container_name: order_pg
+    restart: always
+    environment:
+      POSTGRES_USER: pulasthi
+      POSTGRES_PASSWORD: 2002
+      POSTGRES_DB: swiftlogistics
+    ports:
+      - "5432:5432"
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+
+  rabbitmq:
+    image: rabbitmq:3-management
+    container_name: order_rmq
+    restart: always
+    ports:
+      - "5672:5672"   # main AMQP port
+      - "15672:15672" # management UI
+    environment:
+      RABBITMQ_DEFAULT_USER: admin
+      RABBITMQ_DEFAULT_PASS: admin
+    volumes:
+      - rabbitmq_data:/var/lib/rabbitmq
+
+  order-service:
+    build: .
+    container_name: order_service
+    restart: always
+    depends_on:
+      - postgres
+      - rabbitmq
+    env_file:
+      - .env
+    ports:
+      - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
+    command: sh -c "npx prisma migrate deploy && node src/index.js"
+
+volumes:
+  postgres_data:
+  rabbitmq_data:
